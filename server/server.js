@@ -8,40 +8,33 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server, {serveClient: true});
 const mongoose = require('mongoose');
 const passport = require('passport');
-const {Strategy, ExtractJwt} = require('passport-jwt');
+const {Strategy} = require('passport-jwt');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
-const opts = {
-    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: 'rCSVbzHGct9sZuBsRV8SHAA'
-};
+const {jwt} = require('./config');
 
-passport.use(new Strategy(opts, function(jwt_payload, done) {
+passport.use(new Strategy(jwt, function(jwt_payload, done) {
     if(jwt_payload != void(0)) return done(false, jwt_payload);
     done();
 }));
 
 mongoose.connect('mongodb://localhost:27017/chatik', {});
 mongoose.Promise = require('bluebird');
+mongoose.set('debug',true);
 
 nunjucks.configure('./client/view', {
     autoescape: true,
     express: app
 });
 
-app.use('/assets', express.static('./client/public'));
+app.use(bodyParser.urlencoded({extended:false}));
 
-function checkAuth (req, res, next) {
-    passport.authenticate('jwt', {session:false}, (err, decryptToken, jwtError) => {
-        if (jwtError != void(0) || err != void(0)) return res.render('index.html', {error: err || jwtError });
-        req.user = decryptToken;
-        next();
-    })
-}
+app.use(cookieParser());
 
-app.get('/', checkAuth, (req, res) => {
-    res.render('index.html', {date: new Date() });
-});
+app.use(bodyParser.json());
 
+require('./router')(app);
 require('./sockets')(io);
 
 
