@@ -21,7 +21,6 @@ passport.use(new Strategy(jwt, function(jwt_payload, done) {
 
 mongoose.connect('mongodb://localhost:27017/chatik', {});
 mongoose.Promise = require('bluebird');
-mongoose.set('debug',true);
 
 nunjucks.configure('./client/view', {
     autoescape: true,

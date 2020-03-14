@@ -10,7 +10,9 @@ const jwt = require('jsonwebtoken');
 
 function checkAuth (req, res, next) {
     passport.authenticate('jwt', {session:false}, (err, decryptToken, jwtError) => {
-        if (jwtError != void(0) || err != void(0)) return res.render('index.html', {error: err || jwtError });
+        if (jwtError != void(0) || err != void(0)) {
+            return res.render('index.html', {error: err || jwtError });
+        }
         req.user = decryptToken;
         next();
     })(req,res, next);
@@ -20,26 +22,27 @@ function createToken (body) {
     return jwt.sign(
         body,
         config.jwt.secretOrKey,
-        { expiresIn:config.expiresIn }
-    );
+        { expiresIn:config.expiresIn
+        });
 }
 
 module.exports = app => {
     app.use('/assets', express.static('./client/public'));
     app.get('/', checkAuth, (req, res) => {
-        res.render('index.html', {date: new Date() });
+        res.render('index.html', {username: req.user.username });
     });
 
     app.post('/login', async (req,res) => {
         try {
-            let user = await UsersModel.find({username: {$regex: _.escapeRegExp(req.body.username), $options: "i"}}).lean().exec();
+            let user = await UsersModel.findOne({username: {$regex: _.escapeRegExp(req.body.username), $options: "i"}}).lean().exec();
             if (user != void(0) && bcrypt.compareSync(req.body.password, user.password)) {
                 const token = createToken({id:user._id, username: user.username});
                 res.cookie('token', token, {
                     httpOnly: true
                 });
                 res.status(200).send({message: "User logged in succesfully."});
-            } else res.status(400).send({message: "User does not exists or password is not correct."});
+            } else
+                res.status(400).send({message: "User does not exists or password is not correct."});
         } catch (e) {
             console.error("E, login, ", e);
             res.status(500).send({message: "some error"});
@@ -49,9 +52,8 @@ module.exports = app => {
     app.post('/register', async (req,res) => {
     try {
         let user = await UsersModel.findOne({username: {$regex: _.escapeRegExp(req.body.username), $options: "i"}}).lean().exec();
-        if(user) return res.status(400).send({message: "User already exists"});
-
-        user = await UsersModel.create({
+        if (user != void(0)) return res.status(400).send({message: "User already exists"});
+            user = await UsersModel.create({
             username: req.body.username,
             password: req.body.password
         });

@@ -2,7 +2,9 @@
 
 function ExtractJwt (req) {
     let token = null;
-    if (req.cookie && req.cookies.token != void(0)) token = req.cookies('token');
+    if (req.cookies && req.cookies.token != void(0)) {
+        token = req.cookies['token'];
+    }
     return token;
 }
 
@@ -11,6 +13,15 @@ module.exports = {
         jwtFromRequest: ExtractJwt,
         secretOrKey: 'rCSVbzHGct9sZuBsRV8SHAA'
     },
-    expiresIn: '1 day'
+    expiresIn: '1 day',
+
+    mongo: {
+        url:'mongodb://localhost:27017/',
+        options: {
+            dbName: 'chatik',
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        }
+    }
 };
 
